@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>whosmcu</title>
+        <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.css">
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/milligram/1.3.0/milligram.css">
+        <link rel="stylesheet" href="/css/app.css">
+        <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    </head>
+    <body>
+        <div id="app" v-cloak>
+            <span class="spinner" v-if="loading"><i class="fa fa-circle-o-notch fa-spin"></i></span>
+            <div class="wm-margin-top--20">
+
+                <div class="container">
+                    <div class="row">
+                        <div class="column">
+
+                            <div>
+                                <label>Actor name</label>
+                                <input type="text" v-model="actorName">
+                                <input class="button" type="submit" v-on:click="getActors()" value="Search">
+                            </div>
+                            <result-list v-bind:results="actors"></result-list>
+
+                        </div>
+                        <div class="column column-50">
+                            <pre><code>{{ $data }}</code></pre>
+                        </div>
+                    </div>
+
+                </div>
+                
+            </div>
+
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+        <script src="/js/result-list.component.js"></script>
+        <!--vue-->
+        <script type="text/javascript">
+
+            Vue.filter('moment', function (date, format) {
+               if (date == null || date == '') return "";
+               if (format == null || format == '') format = "MM/DD/YYYY";
+               return moment(date).format(format);
+           });
+
+        var app = new Vue({
+                el: '#app',
+                data: {
+                    loading: false,
+                    apiUrl: "https://whosmcu-api.herokuapp.com/",
+                    model: null,
+                    actorName: '',
+                    actors: [],
+                    searched: false,
+                },//end data
+                methods: {
+
+                    getActors: function(){
+                        if(this.actorName === '')
+                            return;
+
+                        this.loading = true;
+                        axios({
+                            method: 'get',
+                            url: this.apiUrl + 'mcuactors?name=' + this.actorName,
+                        })
+                        .then(r => {
+                            console.log(r);
+                            this.model = r.data;
+                            this.actors = r.data.items;
+                            this.loading = false;
+                            this.searched = true;
+                        })
+                        .catch(error => {
+                            console.log(error);
+                            this.loading = false;
+                            this.handleError(error);
+                        });
+                    },
+                    handleError: function(error){
+                        if (error.response) {
+                            // The request was made and the server responded with a status code
+                            // that falls out of the range of 2xx
+                            // console.log(error.response.data);
+                            // console.log(error.response.status);
+                            // console.log(error.response.headers);
+                            if(error.response.status === 401){
+                                localStorage.removeItem(this.ACCESS_TOKEN);
+                                this.message = 'Unauthorized';
+                            }
+                            //login error
+                            if(error.response.status === 400 && error.response.data.error === "invalid_grant"){
+                                this.message = 'Invalid credentials';
+                            }
+
+                        } else if (error.request) {
+                            // The request was made but no response was received
+                            // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
+                            // http.ClientRequest in node.js
+                            console.log(error.request);
+                        } else {
+                            // Something happened in setting up the request that triggered an Error
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                    },
+
+
+
+                },//end methods
+                mounted: function(){
+ 
+                } 
+                    
+            })//end app
+        </script>
+        <!--end vue-->
+    </body>
+</html>
